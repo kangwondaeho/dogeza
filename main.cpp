@@ -70,9 +70,9 @@ int WINAPI WinMain(HINSTANCE hI, HINSTANCE, LPSTR, int)
 {
     srand((unsigned int)time(nullptr));
 
-    printf("=== Dogeza Sliding: School Background Zoom Version ===\n");
+    printf("=== Dogeza Sliding: Simplified Core Version ===\n");
     printf("Space: start / prone slide, R: restart, ESC: quit\n");
-    printf("Receiver is anchored to the school background zoom. Hidden judgement lines are replaced by a progressive multi-layer halo, camera shake, result image effects, camera-impact feedback, map color grading, improved UI, and no receiver-side translucent quad.\n\n");
+    printf("Core version: map rule, prone slide, judge, score, camera/background, title, HUD, and result image.\n\n");
 
     GameLoop gEngine;
     gEngine.Initialize(hI, GlobalWndProc);
@@ -96,20 +96,14 @@ int WINAPI WinMain(HINSTANCE hI, HINSTANCE, LPSTR, int)
     Texture* playerProneTex = LoadTextureAsset(&gEngine.gfx, L"assets\\player_prone.png");
     Texture* receiverTex = LoadTextureAsset(&gEngine.gfx, L"assets\\receiver.png");
     Texture* fontTex = LoadTextureAsset(&gEngine.gfx, L"assets\\font_atlas.png");
-    Texture* haloTex = LoadTextureAsset(&gEngine.gfx, L"assets\\receiver_halo.png");
     Texture* resultPerfectTex = LoadTextureAsset(&gEngine.gfx, L"assets\\result_perfect.png");
     Texture* resultGreatTex = LoadTextureAsset(&gEngine.gfx, L"assets\\result_great.png");
     Texture* resultGoodTex = LoadTextureAsset(&gEngine.gfx, L"assets\\result_good.png");
     Texture* resultFailTex = LoadTextureAsset(&gEngine.gfx, L"assets\\result_fail.png");
     Texture* titleCardTex = LoadTextureAsset(&gEngine.gfx, L"assets\\title_card.png");
 
-    ColorMaterial* distanceBgMat = new ColorMaterial(colorShaders, XMFLOAT4(0.0f, 0.0f, 0.0f, 0.42f), gEngine.gfx.Device);
-    ColorMaterial* distanceFillMat = new ColorMaterial(colorShaders, XMFLOAT4(1.0f, 1.0f, 1.0f, 0.45f), gEngine.gfx.Device);
     ColorMaterial* topBarMat = new ColorMaterial(colorShaders, XMFLOAT4(0.0f, 0.0f, 0.0f, 0.34f), gEngine.gfx.Device);
     ColorMaterial* bottomBarMat = new ColorMaterial(colorShaders, XMFLOAT4(0.0f, 0.0f, 0.0f, 0.36f), gEngine.gfx.Device);
-    ColorMaterial* resultFlashMat = new ColorMaterial(colorShaders, XMFLOAT4(1.0f, 1.0f, 1.0f, 0.0f), gEngine.gfx.Device);
-    ColorMaterial* failSlashMatA = new ColorMaterial(colorShaders, XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f), gEngine.gfx.Device);
-    ColorMaterial* failSlashMatB = new ColorMaterial(colorShaders, XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f), gEngine.gfx.Device);
     ColorMaterial* titleBackdropMat = new ColorMaterial(colorShaders, XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f), gEngine.gfx.Device);
 
     TextureMaterial* backgroundMat = new TextureMaterial(textureShaders, backgroundTex);
@@ -117,7 +111,6 @@ int WINAPI WinMain(HINSTANCE hI, HINSTANCE, LPSTR, int)
     TextureMaterial* playerProneMat = new TextureMaterial(textureShaders, playerProneTex);
     TextureMaterial* receiverTexMat = new TextureMaterial(textureShaders, receiverTex);
     TextureMaterial* fontMat = new TextureMaterial(textureShaders, fontTex);
-    TextureMaterial* haloMat = new TextureMaterial(textureShaders, haloTex);
     TextureMaterial* resultPerfectMat = new TextureMaterial(textureShaders, resultPerfectTex);
     TextureMaterial* resultGreatMat = new TextureMaterial(textureShaders, resultGreatTex);
     TextureMaterial* resultGoodMat = new TextureMaterial(textureShaders, resultGoodTex);
@@ -126,11 +119,15 @@ int WINAPI WinMain(HINSTANCE hI, HINSTANCE, LPSTR, int)
 
     std::vector<Mesh*> meshes = { colorQuadMesh, textureQuadMesh };
     std::vector<Material*> materials = {
-        distanceBgMat, distanceFillMat, topBarMat, bottomBarMat, resultFlashMat, failSlashMatA, failSlashMatB,
-        backgroundMat, playerRunMat, playerProneMat, receiverTexMat, fontMat, haloMat,
+        topBarMat, bottomBarMat, titleBackdropMat,
+        backgroundMat, playerRunMat, playerProneMat, receiverTexMat, fontMat,
         resultPerfectMat, resultGreatMat, resultGoodMat, resultFailMat, titleCardMat
     };
-    std::vector<Texture*> textures = { backgroundTex, backgroundShortTex, backgroundLongTex, playerRunTex, playerProneTex, receiverTex, fontTex, haloTex, resultPerfectTex, resultGreatTex, resultGoodTex, resultFailTex, titleCardTex };
+    std::vector<Texture*> textures = {
+        backgroundTex, backgroundShortTex, backgroundLongTex,
+        playerRunTex, playerProneTex, receiverTex, fontTex,
+        resultPerfectTex, resultGreatTex, resultGoodTex, resultFailTex, titleCardTex
+    };
 
     GameObject* manager = new GameObject(0.0f, 0.0f, 0.0f, "GameManagerObject");
 
@@ -149,15 +146,6 @@ int WINAPI WinMain(HINSTANCE hI, HINSTANCE, LPSTR, int)
         judge,
         score);
 
-    auto* consoleHud = new ConsoleHudComponent(
-        fsm,
-        mapRandomizer,
-        playerMotion,
-        depthTarget,
-        judge,
-        score,
-        followCamera);
-
     manager->AddComponent(mapRandomizer);
     manager->AddComponent(depthTarget);
     manager->AddComponent(playerMotion);
@@ -165,30 +153,12 @@ int WINAPI WinMain(HINSTANCE hI, HINSTANCE, LPSTR, int)
     manager->AddComponent(score);
     manager->AddComponent(fsm);
     manager->AddComponent(followCamera);
-    manager->AddComponent(new CameraShakeComponent(followCamera, playerMotion, depthTarget));
-    manager->AddComponent(new ResultCameraImpactComponent(fsm, judge, followCamera));
-    manager->AddComponent(consoleHud);
 
     GameObject* background = new GameObject(0.0f, 0.0f, 0.0f, "SchoolBackgroundZoom");
     auto* backgroundZoom = new BackgroundZoomComponent(backgroundMat, followCamera, mapRandomizer, backgroundTex, backgroundShortTex, backgroundLongTex);
     background->AddComponent(backgroundZoom);
     gEngine.world.push_back(background);
-gEngine.world.push_back(manager);
-
-    GameObject* haloOuter = MakeRenderObject("ReceiverHaloOuter", textureQuadMesh, haloMat);
-    haloOuter->AddComponent(new ReceiverProximityCueComponent(backgroundZoom, depthTarget, playerMotion,
-        220.0f, 95.0f, 0.52f, 0.18f, 0.06f, 2.6f, -0.55f, 0.0f, 0.50f));
-    gEngine.world.push_back(haloOuter);
-
-    GameObject* haloMid = MakeRenderObject("ReceiverHaloMid", textureQuadMesh, haloMat);
-    haloMid->AddComponent(new ReceiverProximityCueComponent(backgroundZoom, depthTarget, playerMotion,
-        115.0f, 42.0f, 0.38f, 0.14f, 0.08f, 4.2f, 0.95f, 1.2f, 0.50f));
-    gEngine.world.push_back(haloMid);
-
-    GameObject* haloInner = MakeRenderObject("ReceiverHaloInner", textureQuadMesh, haloMat);
-    haloInner->AddComponent(new ReceiverProximityCueComponent(backgroundZoom, depthTarget, playerMotion,
-        48.0f, 12.0f, 0.24f, 0.16f, 0.10f, 7.4f, -1.75f, 2.1f, 0.50f));
-    gEngine.world.push_back(haloInner);
+    gEngine.world.push_back(manager);
 
     GameObject* receiver = MakeRenderObject("DogezaReceiverNPC", textureQuadMesh, receiverTexMat);
     receiver->AddComponent(new ReceiverVisualComponent(backgroundZoom, depthTarget));
@@ -216,37 +186,6 @@ gEngine.world.push_back(manager);
     GameObject* titleCard = MakeRenderObject("TitleCard", textureQuadMesh, titleCardMat);
     titleCard->AddComponent(new TitleOverlayComponent(fsm, 0.0f, 0.16f, 1.52f, 0.56f));
     gEngine.world.push_back(titleCard);
-
-    GameObject* resultFlash = MakeRenderObject("ResultFlash", colorQuadMesh, resultFlashMat);
-    resultFlash->AddComponent(new ResultFlashComponent(fsm, judge, resultFlashMat));
-    gEngine.world.push_back(resultFlash);
-
-    GameObject* resultBurstOuter = MakeRenderObject("ResultHaloBurstOuter", textureQuadMesh, haloMat);
-    MeshRenderer* resultBurstOuterRenderer = resultBurstOuter->GetComponent<MeshRenderer>();
-    resultBurstOuter->AddComponent(new ResultHaloBurstComponent(fsm, judge, resultBurstOuterRenderer, haloMat, 1.10f, 4.2f, -0.55f));
-    gEngine.world.push_back(resultBurstOuter);
-
-    GameObject* resultBurstInner = MakeRenderObject("ResultHaloBurstInner", textureQuadMesh, haloMat);
-    MeshRenderer* resultBurstInnerRenderer = resultBurstInner->GetComponent<MeshRenderer>();
-    resultBurstInner->AddComponent(new ResultHaloBurstComponent(fsm, judge, resultBurstInnerRenderer, haloMat, 0.82f, 6.4f, 0.82f));
-    gEngine.world.push_back(resultBurstInner);
-
-    GameObject* failSlashA = MakeRenderObject("FailSlashA", colorQuadMesh, failSlashMatA);
-    failSlashA->AddComponent(new FailureSlashComponent(fsm, judge, failSlashMatA, 0.34f, 0.16f));
-    gEngine.world.push_back(failSlashA);
-
-    GameObject* failSlashB = MakeRenderObject("FailSlashB", colorQuadMesh, failSlashMatB);
-    failSlashB->AddComponent(new FailureSlashComponent(fsm, judge, failSlashMatB, -0.34f, 0.08f));
-    gEngine.world.push_back(failSlashB);
-
-    GameObject* distanceBg = MakeRenderObject("DistanceMeterBackground", colorQuadMesh, distanceBgMat);
-    distanceBg->pos = { 0.0f, -0.82f, 0.0f };
-    distanceBg->scale = { 0.86f, 0.045f, 1.0f };
-    gEngine.world.push_back(distanceBg);
-
-    GameObject* distanceFill = MakeRenderObject("DistanceMeterFill", colorQuadMesh, distanceFillMat);
-    distanceFill->AddComponent(new DistanceMeterComponent(playerMotion, depthTarget, distanceFillMat));
-    gEngine.world.push_back(distanceFill);
 
     GameObject* hud = new GameObject(0.0f, 0.0f, 0.0f, "BitmapFontHUD");
     hud->AddComponent(new BitmapFontHudComponent(fontMat, fsm, mapRandomizer, playerMotion, depthTarget, judge, score));
